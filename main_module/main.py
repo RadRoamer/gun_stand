@@ -33,11 +33,37 @@ class Player:
         win.blit(self.rotated_image, self.rect)
 
 
+class Crosshair(pg.sprite.Sprite):
+    def __init__(self, image_path=None):
+        super().__init__()
+        # if we create crosshair, hide the mouse arrow
+        pg.mouse.set_visible(False)
+
+        if not image_path:
+            # set the default crosshair
+            image_path = CROSSHAIR_PATH
+
+        self.image = pg.image.load(image_path).convert_alpha()
+        self.image = pg.transform.scale(self.image, (50, 50))
+        self.rect = self.image.get_rect()
+        self.update()
+
+    def update(self):
+        self.rect.center = pg.mouse.get_pos()
+
+    def draw(self, win):
+        self.update()
+        win.blit(self.image, self.rect)
+
+
 def main_loop():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
 
     # hero
     hero = Player(screen.get_size())
+
+    # crosshair
+    crosshair = Crosshair()
 
     # image icon source
     # https://ru.freepik.com/icon/%D0%BF%D1%83%D0%BB%D0%B5%D0%BC%D0%B5%D1%82_2125#fromView=search&term=pixel+gun+turret&page=1&position=52
@@ -61,6 +87,7 @@ def main_loop():
 
         # update the main surface
         hero.draw(screen)
+        crosshair.draw(screen)
 
         pg.display.update()
         clock.tick(FPS)
