@@ -4,35 +4,6 @@ from pygame.locals import *
 from constants import *
 
 
-class Player:
-    def __init__(self, surf_size, image_path=PLAYER_PATH):
-        self.image = pg.image.load(image_path).convert_alpha()
-        self.rotated_image = None
-        self.rect = None
-        self._center = tuple((x // 2 for x in surf_size))
-        self.angle = 0
-        self.bullets = pg.sprite.Group()
-
-    def calc_angle(self):
-        mouse_x, mouse_y = pg.mouse.get_pos()
-        center_x, center_y = self._center
-
-        # calc the rotation angle
-        x_dist = mouse_x - center_x
-        y_dist = -(mouse_y - center_y)
-
-        return math.degrees(math.atan2(y_dist, x_dist))
-
-    def update(self):
-        self.angle = self.calc_angle()
-        self.rotated_image = pg.transform.rotate(self.image, self.angle)
-        self.rect = self.rotated_image.get_rect(center=self._center)
-
-    def draw(self, win):
-        self.update()
-        win.blit(self.rotated_image, self.rect)
-
-
 class Crosshair:
     def __init__(self, image_path=None):
         super().__init__()
@@ -56,6 +27,58 @@ class Crosshair:
         win.blit(self.image, self.rect)
 
 
+class Player:
+    def __init__(self, surf_size, image_path=PLAYER_PATH):
+        self.image = pg.image.load(image_path).convert_alpha()
+        self.rotated_image = None
+        self.rect = None
+        self._center = tuple((x // 2 for x in surf_size))
+        self.angle = 0
+        self.bullets = pg.sprite.Group()
+
+    def shoot(self):
+        self.bullets.add(Bullet(self.angle, self.rect.center))
+
+    def calc_angle(self):
+        mouse_x, mouse_y = pg.mouse.get_pos()
+        center_x, center_y = self._center
+
+        # calc the rotation angle
+        x_dist = mouse_x - center_x
+        y_dist = -(mouse_y - center_y)
+
+        return math.degrees(math.atan2(y_dist, x_dist))
+
+    def update(self):
+        self.angle = self.calc_angle()
+        self.rotated_image = pg.transform.rotate(self.image, self.angle)
+        self.rect = self.rotated_image.get_rect(center=self._center)
+
+    def draw(self, win):
+        self.update()
+        self.bullets.update()
+        self.bullets.draw(win)
+        win.blit(self.rotated_image, self.rect)
+
+
+class Bullet(pg.sprite.Sprite):
+    def __init__(self, angle, gun_pos, image_path=BULLET_PATH, speed=20):
+        super().__init__()
+        self.image = pg.image.load(image_path).convert_alpha()
+        self.image = pg.transform.scale(self.image, (20, 20))
+        self.image = pg.transform.rotate(self.image, angle)
+        self.rect = self.image.get_rect(center=gun_pos)
+        self.angle = angle
+        self.speed = speed
+
+    def update(self):
+        radians = -math.radians(self.angle)
+        x, y = self.rect.center
+        x = x + self.speed * math.cos(radians)
+        y = y + self.speed * math.sin(radians)
+        self.rect = self.image.get_rect(center=(x, y))
+
+
 def main_loop():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
 
@@ -65,8 +88,6 @@ def main_loop():
     # crosshair
     crosshair = Crosshair()
 
-    # image icon source
-    # https://ru.freepik.com/icon/%D0%BF%D1%83%D0%BB%D0%B5%D0%BC%D0%B5%D1%82_2125#fromView=search&term=pixel+gun+turret&page=1&position=52
     background = pg.image.load('../tile_floor.png').convert_alpha()
     background = pg.transform.scale(background, (800, 600))
 
@@ -77,6 +98,8 @@ def main_loop():
         for event in pg.event.get():
             if event.type == QUIT:
                 running = False
+            elif event.type == MOUSEBUTTONDOWN and event.button == 1:
+                hero.shoot()
 
         keys = pg.key.get_pressed()
         if keys[K_ESCAPE]:
