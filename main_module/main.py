@@ -33,7 +33,7 @@ class Player:
         win.blit(self.rotated_image, self.rect)
 
 
-class Crosshair(pg.sprite.Sprite):
+class Crosshair:
     def __init__(self, image_path=None):
         super().__init__()
         # if we create crosshair, hide the mouse arrow
