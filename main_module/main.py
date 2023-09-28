@@ -5,14 +5,10 @@ from constants import *
 
 
 class Crosshair:
-    def __init__(self, image_path=None):
+    def __init__(self, image_path=CROSSHAIR_PATH):
         super().__init__()
         # if we create crosshair, hide the mouse arrow
         pg.mouse.set_visible(False)
-
-        if not image_path:
-            # set the default crosshair
-            image_path = CROSSHAIR_PATH
 
         self.image = pg.image.load(image_path).convert_alpha()
         self.image = pg.transform.scale(self.image, (50, 50))
@@ -28,16 +24,18 @@ class Crosshair:
 
 
 class Player:
-    def __init__(self, surf_size, image_path=PLAYER_PATH):
+    def __init__(self, surf_size, fire_rate=20, image_path=PLAYER_PATH):
         self.image = pg.image.load(image_path).convert_alpha()
         self.rotated_image = None
         self.rect = None
+        self.fire_rate = fire_rate
         self._center = tuple((x // 2 for x in surf_size))
         self.angle = 0
         self.bullets = pg.sprite.Group()
 
     def shoot(self):
-        self.bullets.add(Bullet(self.angle, self.rect.center))
+        if len(self.bullets) < self.fire_rate:
+            self.bullets.add(Bullet(self.angle, self.rect.center))
 
     def calc_angle(self):
         mouse_x, mouse_y = pg.mouse.get_pos()
@@ -56,6 +54,12 @@ class Player:
 
     def draw(self, win):
         self.update()
+        for bullet in self.bullets:
+            if bullet.rect.x not in range(0, win.get_width()):
+                self.bullets.remove(bullet)
+            elif bullet.rect.y not in range(0, win.get_height()):
+                self.bullets.remove(bullet)
+
         self.bullets.update()
         self.bullets.draw(win)
         win.blit(self.rotated_image, self.rect)
@@ -71,7 +75,7 @@ class Bullet(pg.sprite.Sprite):
         self.angle = angle
         self.speed = speed
 
-    def update(self):
+    def update(self, *args):
         radians = -math.radians(self.angle)
         x, y = self.rect.center
         x = x + self.speed * math.cos(radians)
@@ -98,8 +102,10 @@ def main_loop():
         for event in pg.event.get():
             if event.type == QUIT:
                 running = False
-            elif event.type == MOUSEBUTTONDOWN and event.button == 1:
-                hero.shoot()
+
+        left_mouse, *other_buttons = pg.mouse.get_pressed()
+        if left_mouse:
+            hero.shoot()
 
         keys = pg.key.get_pressed()
         if keys[K_ESCAPE]:
