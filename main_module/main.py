@@ -3,6 +3,9 @@ import math
 from pygame.locals import *
 from constants import *
 
+pg.mixer.pre_init(44100, -16, 2, 512)
+pg.init()
+
 
 class Crosshair:
     def __init__(self, image_path=CROSSHAIR_PATH):
@@ -24,11 +27,13 @@ class Crosshair:
 
 
 class Player:
-    def __init__(self, surf_size, fire_rate=20, image_path=PLAYER_PATH):
+    def __init__(self, surf_size, fire_rate=20,
+                 image_path=PLAYER_PATH, sound_path=S_GUNSHOT_PATH):
         self.image = pg.image.load(image_path).convert_alpha()
         self.rotated_image = None
         self.rect = None
         self.fire_rate = fire_rate
+        self.gun_sound = sound_path
         self._center = tuple((x // 2 for x in surf_size))
         self.angle = 0
         self.bullets = pg.sprite.Group()
@@ -36,6 +41,7 @@ class Player:
     def shoot(self):
         if len(self.bullets) < self.fire_rate:
             self.bullets.add(Bullet(self.angle, self.rect.center))
+            pg.mixer.Sound(self.gun_sound).play(maxtime=500)
 
     def calc_angle(self):
         mouse_x, mouse_y = pg.mouse.get_pos()
@@ -92,10 +98,17 @@ def main_loop():
     # crosshair
     crosshair = Crosshair()
 
+    # background
     background = pg.image.load('../tile_floor.png').convert_alpha()
     background = pg.transform.scale(background, (800, 600))
 
     clock = pg.time.Clock()
+
+    # delay between shots in milliseconds
+    shoot_delay = 100  # 0.1 секунда
+
+    # var to track the last shooting time
+    last_shoot_time = 0
 
     running = True
     while running:
@@ -103,9 +116,13 @@ def main_loop():
             if event.type == QUIT:
                 running = False
 
+        current_time = pg.time.get_ticks()
+
         left_mouse, *other_buttons = pg.mouse.get_pressed()
         if left_mouse:
-            hero.shoot()
+            if current_time - last_shoot_time >= shoot_delay:
+                hero.shoot()
+                last_shoot_time = current_time
 
         keys = pg.key.get_pressed()
         if keys[K_ESCAPE]:
